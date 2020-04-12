@@ -49,4 +49,11 @@ describe Presto do
       end
     end
   end
+
+  it "should use SSL when specified" do
+    database = DB.open(DB_URL + "?SSL=true")
+    conn = database.checkout
+    conn.http_uri.scheme.should eq "https"
+    database.close
+  end
 end

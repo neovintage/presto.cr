@@ -15,7 +15,9 @@ module Presto
     # todo throw error if username isnt defined. that's required
     def initialize(context)
       super(context)
-      context.uri.scheme = "http"
+
+      context.uri.scheme = set_scheme(context.uri)
+
       @connection = HTTP::Client.new(context.uri)
       @connection.basic_auth(context.uri.user, context.uri.password)
 
@@ -27,12 +29,24 @@ module Presto
       end
     end
 
+    def http_uri
+      @context.uri
+    end
+
     def build_unprepared_statement(query) : Statement
       Statement.new(self, query)
     end
 
     def build_prepared_statement(query) : Statement
       Statement.new(self, query)
+    end
+
+    private def set_scheme(uri)
+      use_ssl = uri.query_params["SSL"]?
+      if use_ssl == "true"
+        return "https"
+      end
+      return "http"
     end
   end
 
