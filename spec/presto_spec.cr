@@ -1,6 +1,10 @@
 require "./spec_helper"
 
 describe Presto do
+  it "should register Presto::Driver" do
+    DB.open(DB_URL).driver.should be_a(Presto::Driver)
+  end
+
   it "should query a cluster" do
     DB.open(DB_URL) do |db|
       result = db.query "select * from tpch.sf1.customer limit 1"

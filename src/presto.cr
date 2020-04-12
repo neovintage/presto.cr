@@ -178,6 +178,7 @@ module Presto
   end
 
   class Driver < ::DB::Driver
+    # todo this is where we should be creating the connection header
     def build_connection(context : ::DB::ConnectionContext) : Connection
       Connection.new(context)
     end
