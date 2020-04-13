@@ -60,4 +60,11 @@ describe Presto do
     conn.http_uri.scheme.should eq "https"
     database.close
   end
+
+  it "should enable param override" do
+    DB.open(DB_URL) do |db|
+      db.using_connection do |conn|
+      end
+    end
+  end
 end
