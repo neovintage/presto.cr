@@ -61,10 +61,34 @@ describe Presto do
     database.close
   end
 
-  it "should enable param override" do
+  # todo
+  it "should reset all of the params by assignment" do
     DB.open(DB_URL) do |db|
       db.using_connection do |conn|
+        #conn.options = {}
       end
     end
+  end
+
+  # todo
+  it "should add params to the current set" do
+    DB.open(DB_URL) do |db|
+      db.using_connection do |conn|
+        #conn.options["role"] = "something"
+      end
+    end
+  end
+
+  # todo
+  it "shoudl raise an error if the option is not valid" do
+    DB.open(DB_URL) do |db|
+      db.using_connection do |conn|
+        #conn.options["bad_option"] = "something"
+      end
+    end
+  end
+
+  # todo
+  it "should be able to set options from the connection uri" do
   end
 end
