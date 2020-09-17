@@ -1,6 +1,6 @@
 module Presto
   DEFAULT_HEADERS = HTTP::Headers{
-    "User-Agent" => "presto-crystal/#{VERSION}",
+    "user_agent" => "presto-crystal/#{VERSION}",
   }
 
   PRESTO_HEADERS = {
@@ -57,15 +57,6 @@ module Presto
       map_keys(params)
     end
 
-    def merge!(other)
-      other.each do |key, value|
-        k = PRESTO_HEADERS[key]?
-        if !k.nil?
-          @http_headers[k] = value
-        end
-      end
-    end
-
     private def map_keys(params)
       params.each do |key, value|
         k = PRESTO_HEADERS[key]?
@@ -89,26 +80,24 @@ module Presto
 
   class Connection < ::DB::Connection
     protected getter connection
+    getter http_uri : URI
+    getter options : ConnectionOptions
 
     # todo throw error if username isnt defined. that's required
+    # todo the incoming context should have the database configuration associated with it.
+    #      we need to take that and then we can create the options out of it.
     def initialize(context)
       super(context)
 
-      # todo create a new uri
-      context.uri.scheme = set_scheme(context.uri)
+      @http_uri = context.uri.dup
 
-      @connection = HTTP::Client.new(context.uri)
+      @connection = HTTP::Client.new(@http_uri)
       @connection.basic_auth(context.uri.user, context.uri.password)
 
       @options = ConnectionOptions.new
-
-      # todo need to have defaults that the user can then override. dont need to do this. can use a different way of calling in the http client
-      @connection.before_request do |request|
-        request.headers["User-Agent"] = "presto-crystal"
-      end
     end
 
-    def http_uri
+    def uri
       @context.uri
     end
 

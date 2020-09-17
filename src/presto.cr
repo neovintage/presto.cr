@@ -10,22 +10,25 @@ module Presto
       super(connection)
     end
 
-    protected def conn
-      connection.as(Connection).connection
+    protected def http_client
+      connection.as(::Presto::Connection).connection
     end
 
     # todo the args in enumerable should have the options that can be overridden
+    #      the connection should have the default options that were set up for the data base. On
+    #      a query basis you should be able to override the options.
     protected def perform_query(args : Enumerable) : ResultSet
       start_time = Time.monotonic
       timeout = statement_timeout
-      http_response = conn.post("/v1/statement", headers: nil, body: @sql)
+
+      http_response = http_client.post("/v1/statement", headers: connection.options.http_headers, body: @sql)
       json = uninitialized JSON::Any
 
       loop do
         json = JSON.parse(http_response.body)
         break if ((Time.monotonic - start_time) > timeout) || json["nextUri"]?.nil? || json["data"]?
 
-        http_response = conn.get(json["nextUri"].to_s)
+        http_response = http_client.get(json["nextUri"].to_s)
       end
 
       ResultSet.new(self, json, http_response)
@@ -96,8 +99,8 @@ module Presto
   end
 
   class Driver < ::DB::Driver
-    def build_connection(context : ::DB::ConnectionContext) : Connection
-      Connection.new(context)
+    def build_connection(context : ::DB::ConnectionContext) : ::Presto::Connection
+      ::Presto::Connection.new(context)
     end
   end
 end
