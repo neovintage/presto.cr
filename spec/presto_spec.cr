@@ -62,7 +62,7 @@ describe Presto do
   end
 
   # todo
-  it "should reset all of the params by assignment" do
+  it "should reset the params when a new assignment happens" do
     DB.open(DB_URL) do |db|
       db.using_connection do |conn|
         #conn.options = {}
@@ -80,7 +80,7 @@ describe Presto do
   end
 
   # todo
-  it "shoudl raise an error if the option is not valid" do
+  it "should raise an error if the option is not valid" do
     DB.open(DB_URL) do |db|
       db.using_connection do |conn|
         #conn.options["bad_option"] = "something"
