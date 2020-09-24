@@ -90,6 +90,7 @@ module Presto
       super(context)
 
       @http_uri = context.uri.dup
+      @http_uri.scheme = set_scheme(@http_uri)
 
       @connection = HTTP::Client.new(@http_uri)
       @connection.basic_auth(context.uri.user, context.uri.password)
