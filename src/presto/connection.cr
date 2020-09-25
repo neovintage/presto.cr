@@ -42,8 +42,13 @@ module Presto
     "buffer_complete" => "X-Presto-Buffer-Complete",
   }
 
+  # ConnectionOptions manages all of the header information for the HTTP::Client.
+  # This struct will silently drop any options that arent part of the valid
+  # connection options for presto. We've got the mapping the way that it is to make
+  # constructing a URI and working with the options a bit easier
+  #
   struct ConnectionOptions
-    getter http_headers : HTTP::Headers
+    @http_headers : HTTP::Headers
 
     def initialize
       @http_headers = DEFAULT_HEADERS.clone
@@ -52,50 +57,62 @@ module Presto
     # This is used in situations where we're parsing the params from the
     # database uri.
     #
-    def initialize(params : HTTP::Params)
+    def initialize(uri : URI)
       @http_headers = DEFAULT_HEADERS.clone
-      map_keys(params)
+      if !uri.query.nil?
+        params = HTTP::Params.parse(uri.query.not_nil!)
+        map_keys(params)
+      end
+    end
+
+    def []=(key, value)
+      k = PRESTO_HEADERS[key]?
+      if !k.nil?
+        @http_headers[key] = value
+      end
+    end
+
+    def http_headers
+      headers = HTTP::Headers.new
+      @http_headers.each do |key, value|
+        k = PRESTO_HEADERS[key]?
+        if !k.nil?
+          headers[k] = value
+        end
+      end
+      headers
     end
 
     private def map_keys(params)
       params.each do |key, value|
         k = PRESTO_HEADERS[key]?
         if !k.nil?
-          @http_headers[k] = value
+          @http_headers[key] = value
         end
       end
     end
 
-    macro create_methods
-      {% for method_name in ["[]=(key, value : String)", "[]=(key, value : Array(String))", "[](key)", "[]?(key)"] %}
-        def {{method_name.id}}
-          key = PRESTO_HEADERS[key]
-          @http_headers.{{method_name.id}}
-        end
-      {% end %}
-    end
-
-    create_methods
+    delegate "[]", to: @http_headers
+    delegate "[]?", to: @http_headers
+    delegate "has_key?", to: @http_headers
   end
 
   class Connection < ::DB::Connection
     protected getter connection
     getter http_uri : URI
-    getter options : ConnectionOptions
+    getter options : Presto::ConnectionOptions
 
     # todo throw error if username isnt defined. that's required
-    # todo the incoming context should have the database configuration associated with it.
-    #      we need to take that and then we can create the options out of it.
     def initialize(context)
       super(context)
 
       @http_uri = context.uri.dup
       @http_uri.scheme = set_scheme(@http_uri)
 
+      @options = ConnectionOptions.new(@http_uri)
+
       @connection = HTTP::Client.new(@http_uri)
       @connection.basic_auth(context.uri.user, context.uri.password)
-
-      @options = ConnectionOptions.new
     end
 
     def uri

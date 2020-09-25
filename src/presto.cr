@@ -21,6 +21,9 @@ module Presto
       start_time = Time.monotonic
       timeout = statement_timeout
 
+      #puts "query connection options object_id: " + connection.options.object_id.to_s
+      #puts "query connection options http headers object id: " + connection.options.http_headers.object_id.to_s
+
       http_response = http_client.post("/v1/statement", headers: connection.options.http_headers, body: @sql)
       json = uninitialized JSON::Any
 
@@ -28,10 +31,10 @@ module Presto
         json = JSON.parse(http_response.body)
         break if ((Time.monotonic - start_time) > timeout) || json["nextUri"]?.nil? || json["data"]?
 
-        http_response = http_client.get(json["nextUri"].to_s)
+        http_response = http_client.get(json["nextUri"].to_s, headers: connection.options.http_headers)
       end
 
-      ResultSet.new(self, json, http_response)
+      ResultSet.new(self, json, http_response, connection.options)
     end
 
     protected def perform_exec(args : Enumerable) : ::DB::ExecResult
@@ -52,8 +55,9 @@ module Presto
     getter data : JSON::Any
     getter columns : JSON::Any
     getter row_count : Int32
+    getter request_options : Presto::ConnectionOptions
 
-    def initialize(statement, @query_results : JSON::Any, response : HTTP::Client::Response)
+    def initialize(statement, @query_results : JSON::Any, response : HTTP::Client::Response, @request_options)
       super(statement)
       @column_index = -1
       @row_index = -1
@@ -93,7 +97,7 @@ module Presto
       return @data[@row_index][@column_index]
     end
 
-    def headers
+    def response_headers
       @http_response.headers
     end
   end

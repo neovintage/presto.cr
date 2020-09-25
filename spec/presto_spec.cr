@@ -48,8 +48,8 @@ describe Presto do
   it "should show the response headers" do
     DB.open(DB_URL) do |db|
       db.query "select * from tpch.sf1.customer where name = 'Customer#000000001' limit 1" do |rs|
-        typeof(rs.headers).should eq HTTP::Headers
-        rs.headers.should_not be_nil
+        typeof(rs.response_headers).should eq HTTP::Headers
+        rs.response_headers.should_not be_nil
       end
     end
   end
@@ -61,34 +61,36 @@ describe Presto do
     database.close
   end
 
-  # todo
-  it "should reset the params when a new assignment happens" do
-    DB.open(DB_URL) do |db|
+  it "should add headers from the URI" do
+    DB.open(DB_URL + "?time_zone=US%2FEastern") do |db|
       db.using_connection do |conn|
-        #conn.options = {}
+        conn.options["time_zone"].should eq("US/Eastern")
       end
     end
   end
 
-  # todo
-  it "should add params to the current set" do
-    DB.open(DB_URL) do |db|
+  it "should reset the param when a new assignment happens" do
+    DB.open(DB_URL + "?time_zone=US%2FEastern") do |db|
       db.using_connection do |conn|
-        #conn.options["role"] = "something"
+        conn.options["time_zone"].should eq("US/Eastern")
+        conn.options["time_zone"] = "US/Pacific"
+        conn.options["time_zone"].should eq("US/Pacific")
       end
     end
   end
 
-  # todo
-  it "should raise an error if the option is not valid" do
-    DB.open(DB_URL) do |db|
+  it "should be able to override headers per query" do
+    DB.open(DB_URL + "?user_agent=dude") do |db|
       db.using_connection do |conn|
-        #conn.options["bad_option"] = "something"
+        conn.options["user_agent"] = "another_user_agent"
+        result = conn.query "select * from tpch.sf1.customer limit 1"
+        result.request_options["user_agent"].should eq "another_user_agent"
+
+        conn.options["user_agent"] = "blah"
+        result = conn.query "select * from tpch.sf1.customer limit 1"
+        result.request_options["user_agent"].should eq "blah"
       end
     end
   end
 
-  # todo
-  it "should be able to set options from the connection uri" do
-  end
 end
