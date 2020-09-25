@@ -21,9 +21,6 @@ module Presto
       start_time = Time.monotonic
       timeout = statement_timeout
 
-      #puts "query connection options object_id: " + connection.options.object_id.to_s
-      #puts "query connection options http headers object id: " + connection.options.http_headers.object_id.to_s
-
       http_response = http_client.post("/v1/statement", headers: connection.options.http_headers, body: @sql)
       json = uninitialized JSON::Any
 
